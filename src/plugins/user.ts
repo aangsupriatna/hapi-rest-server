@@ -1,3 +1,4 @@
+import Boom from '@hapi/boom'
 import Hapi from '@hapi/hapi'
 import Joi from 'joi'
 
@@ -68,7 +69,8 @@ async function getUserHandler(request: Hapi.Request, h: Hapi.ResponseToolkit) {
         const users = await prisma.user.findMany()
         return h.response(users).code(201)
     } catch (error) {
-        console.log(error)
+        request.log('error', error)
+        return Boom.badImplementation(error)
     }
 }
 
@@ -85,7 +87,8 @@ async function postUserHandler(request: Hapi.Request, h: Hapi.ResponseToolkit) {
         })
         return h.response(newUser).code(201)
     } catch (error) {
-        console.log(error)
+        request.log('error', error)
+        return Boom.badData(error)
     }
 }
 
@@ -107,7 +110,8 @@ async function putUserHandler(request: Hapi.Request, h: Hapi.ResponseToolkit) {
         })
         return h.response(updUser).code(200)
     } catch (error) {
-        console.log(error)
+        request.log('error', error)
+        return Boom.boomify(error)
     }
 }
 
@@ -123,6 +127,7 @@ async function deleteUserHandler(request: Hapi.Request, h: Hapi.ResponseToolkit)
         })
         return h.response(delUser).code(200)
     } catch (error) {
-        console.log(error)
+        request.log('error', error)
+        return Boom.badData(error)
     }
 }
