@@ -1,6 +1,7 @@
 import Hapi from '@hapi/hapi'
 import dotenv from 'dotenv'
-import helloPlugin from './plugins/hello'
+import prisma from './plugins/prisma'
+import user from './plugins/user'
 
 dotenv.config()
 
@@ -11,7 +12,8 @@ const server: Hapi.Server = new Hapi.Server({
 
 export async function start(): Promise<Hapi.Server> {
     await server.register([
-        helloPlugin
+        prisma,
+        user
     ], {
         routes: {
             prefix: '/api'
