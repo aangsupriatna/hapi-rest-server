@@ -1,6 +1,8 @@
 import Boom from '@hapi/boom'
 import Hapi from '@hapi/hapi'
 import Joi from 'joi'
+import Bcrypt from 'bcrypt'
+import JWT from 'jsonwebtoken'
 
 const userPlugin = {
     name: 'app/user',
@@ -11,6 +13,9 @@ const userPlugin = {
             {
                 method: 'GET',
                 path: '/user',
+                options: {
+                    auth: false
+                },
                 handler: getUserHandler
             }
         ])
@@ -19,10 +24,11 @@ const userPlugin = {
                 method: 'POST',
                 path: '/user',
                 options: {
+                    auth: false,
                     validate: {
                         payload: Joi.object({
-                            name: Joi.string().min(1).max(50),
-                            email: Joi.string().email()
+                            email: Joi.string().email(),
+                            password: Joi.string()
                         })
                     }
                 },
@@ -76,16 +82,19 @@ async function getUserHandler(request: Hapi.Request, h: Hapi.ResponseToolkit) {
 
 async function postUserHandler(request: Hapi.Request, h: Hapi.ResponseToolkit) {
     const { prisma } = request.server.app
-    const { name, email } = request.payload as any
+    const { email, password } = request.payload as any
 
     try {
+        const salt = await Bcrypt.genSaltSync(10)
+        const encryptedPassword = await Bcrypt.hashSync(password, salt)
         const newUser = await prisma.user.create({
             data: {
-                name,
-                email
+                email,
+                password: encryptedPassword
             }
         })
-        return h.response(newUser).code(201)
+        const token = await JWT.sign({ id: newUser.id }, 'NeverShareYourSecret', { expiresIn: '1d' })
+        return h.response(token).code(201)
     } catch (error) {
         request.log('error', error)
         return Boom.badData(error)
@@ -95,7 +104,7 @@ async function postUserHandler(request: Hapi.Request, h: Hapi.ResponseToolkit) {
 async function putUserHandler(request: Hapi.Request, h: Hapi.ResponseToolkit) {
     const { prisma } = request.server.app
     const userId = request.params.userId
-    const { name, email, isAdmin } = request.payload as any
+    const { name, email, password, isAdmin } = request.payload as any
 
     try {
         const updUser = await prisma.user.update({
@@ -105,6 +114,7 @@ async function putUserHandler(request: Hapi.Request, h: Hapi.ResponseToolkit) {
             data: {
                 name,
                 email,
+                password,
                 isAdmin: Boolean(isAdmin)
             }
         })
