@@ -3,7 +3,7 @@ import Hapi from '@hapi/hapi'
 import Boom from '@hapi/boom'
 import Joi from 'joi'
 import Bcrypt from 'bcrypt'
-import Moment from 'moment'
+import Moment, { now } from 'moment'
 
 interface APITokenPayload {
     tokenId: number
@@ -22,7 +22,7 @@ const authPlugin = {
         server.route([
             {
                 method: 'POST',
-                path: '/login',
+                path: '/signin',
                 options: {
                     auth: false,
                     validate: {
@@ -32,7 +32,15 @@ const authPlugin = {
                         })
                     }
                 },
-                handler: postLoginHandler,
+                handler: postSignInHandler,
+            }
+        ])
+
+        server.route([
+            {
+                method: 'POST',
+                path: '/signout',
+                handler: postSignOutHandler,
             }
         ])
 
@@ -44,7 +52,6 @@ const validateAuth = async (decoded: APITokenPayload, request: Hapi.Request, h: 
     const { prisma } = request.server.app
     const { tokenId } = decoded
 
-    console.log('Decoded token: ' + JSON.stringify(decoded))
     try {
         const userToken = await prisma.token.findUnique({
             where: {
@@ -54,7 +61,6 @@ const validateAuth = async (decoded: APITokenPayload, request: Hapi.Request, h: 
                 user: true
             }
         })
-        console.log('userToken: ' + JSON.stringify(userToken))
 
         if (!userToken || !userToken?.valid) {
             return { isValid: false, errorMessage: 'Invalid token' }
@@ -83,16 +89,17 @@ interface LoginInput {
     email: string,
     password: string
 }
+
 const cookieOptions = {
-    ttl: 365 * 24 * 60 * 60 * 1000, // expires a year from today
-    isSecure: false,      // warm & fuzzy feelings
-    isHttpOnly: true,    // prevent client alteration
-    clearInvalid: false, // remove invalid cookies
-    strictHeader: true,  // don't allow violations of RFC 6265
-    path: '/'            // set the cookie for all routes
+    ttl: 365 * 24 * 60 * 60 * 1000,
+    isSecure: false,
+    isHttpOnly: true,
+    clearInvalid: false,
+    strictHeader: true,
+    path: '/'
 }
 
-async function postLoginHandler(request: Hapi.Request, h: Hapi.ResponseToolkit) {
+async function postSignInHandler(request: Hapi.Request, h: Hapi.ResponseToolkit) {
     const { prisma } = request.server.app
     const { email, password } = request.payload as LoginInput
 
@@ -127,11 +134,31 @@ async function postLoginHandler(request: Hapi.Request, h: Hapi.ResponseToolkit) 
             }, 'NeverShareYourSecret')
 
             return h.response().code(200).state('token', authToken, cookieOptions)
-            // return h.response({ token }).code(201)
         } else {
             return Boom.unauthorized('Wrong credentials')
         }
 
+    } catch (error) {
+        return Boom.boomify(error)
+    }
+}
+
+async function postSignOutHandler(request: Hapi.Request, h: Hapi.ResponseToolkit) {
+    const { prisma } = request.server.app
+    const { tokenId, userId, isAdmin } = h.request.auth.credentials
+    try {
+        const token = await prisma.token.update({
+            where: {
+                id: Number(tokenId)
+            },
+            data: {
+                valid: false,
+                expirationDate: new Date(now())
+            }
+        })
+
+        return h.response(token).code(201)
+        // return h.response(token).unstate('token')
     } catch (error) {
         return Boom.boomify(error)
     }
