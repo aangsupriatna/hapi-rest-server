@@ -4,6 +4,7 @@ import dotenv from 'dotenv'
 import prisma from './plugins/prisma'
 import auth from './plugins/auth'
 import user from './plugins/user'
+import project from './plugins/project'
 
 dotenv.config()
 
@@ -17,7 +18,8 @@ export async function start(): Promise<Hapi.Server> {
         hapiAuthJWT,
         prisma,
         auth,
-        user
+        user,
+        project
     ], {
         routes: {
             prefix: '/api'

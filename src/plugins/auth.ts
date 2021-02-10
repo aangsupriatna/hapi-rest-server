@@ -74,6 +74,7 @@ const validateAuth = async (decoded: APITokenPayload, request: Hapi.Request, h: 
             credentials: {
                 tokenId: decoded.tokenId,
                 userId: userToken.userId,
+                userEmail: userToken.user?.email,
                 isAdmin: userToken.user?.isAdmin,
             },
         }
@@ -104,8 +105,6 @@ const JWT_SECRET = process.env.JWT_TOKEN_SECRET || 'SUPER_SECRET_JWT_SECRET'
 async function postSignInHandler(request: Hapi.Request, h: Hapi.ResponseToolkit) {
     const { prisma } = request.server.app
     const { email, password } = request.payload as LoginInput
-
-    console.log(JWT_SECRET)
 
     try {
         const user = await prisma.user.findUnique({
@@ -149,7 +148,7 @@ async function postSignInHandler(request: Hapi.Request, h: Hapi.ResponseToolkit)
 
 async function postSignOutHandler(request: Hapi.Request, h: Hapi.ResponseToolkit) {
     const { prisma } = request.server.app
-    const { tokenId, userId, isAdmin } = h.request.auth.credentials
+    const { tokenId } = h.request.auth.credentials
     try {
         const token = await prisma.token.update({
             where: {
