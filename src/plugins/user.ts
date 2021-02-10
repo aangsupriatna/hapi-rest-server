@@ -13,6 +13,9 @@ const userPlugin = {
             {
                 method: 'GET',
                 path: '/user',
+                options: {
+                    auth: false
+                },
                 handler: getUserHandler
             }
         ])
@@ -80,7 +83,13 @@ async function getUserHandler(request: Hapi.Request, h: Hapi.ResponseToolkit) {
         const users = await prisma.user.findMany({
             include: { tokens: true }
         })
-        return h.response(users).code(201)
+        // return h.response(users).code(201)
+        const data = {
+            title: `Running hapi ${request.server.version}`,
+            message: 'Hello Handlebars!',
+            year: 2021
+        }
+        return h.view('index', data)
     } catch (error) {
         request.log('error', error)
         return Boom.badImplementation(error)

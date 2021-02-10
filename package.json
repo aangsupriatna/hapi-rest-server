@@ -9,9 +9,11 @@
   "dependencies": {
     "@hapi/boom": "^9.1.1",
     "@hapi/hapi": "^20.1.0",
+    "@hapi/vision": "^6.0.1",
     "@prisma/client": "^2.16.1",
     "bcrypt": "^5.0.0",
     "dotenv": "^8.2.0",
+    "handlebars": "^4.7.6",
     "hapi-auth-jwt2": "^10.2.0",
     "joi": "^17.4.0",
     "jsonwebtoken": "^8.5.1",
@@ -20,6 +22,7 @@
   "devDependencies": {
     "@types/bcrypt": "^3.0.0",
     "@types/hapi__hapi": "^20.0.5",
+    "@types/hapi__vision": "^5.5.2",
     "@types/jsonwebtoken": "^8.5.0",
     "@types/node": "^14.14.25",
     "nodemon": "^2.0.7",
