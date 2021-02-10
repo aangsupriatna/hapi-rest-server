@@ -15,7 +15,7 @@ const authPlugin = {
     register: async function (server: Hapi.Server) {
         server.auth.strategy('jwt', 'jwt', {
             key: 'NeverShareYourSecret',
-            validate: validate,
+            validate: validateAuth,
             verifyOptions: { algorithms: ['HS256'] }
         })
 
@@ -27,8 +27,8 @@ const authPlugin = {
                     auth: false,
                     validate: {
                         payload: Joi.object({
-                            email: Joi.string().email(),
-                            password: Joi.string()
+                            email: Joi.string().email().required(),
+                            password: Joi.string().required()
                         })
                     }
                 },
@@ -40,7 +40,7 @@ const authPlugin = {
     }
 }
 
-const validate = async (decoded: APITokenPayload, request: Hapi.Request, h: Hapi.ResponseToolkit) => {
+const validateAuth = async (decoded: APITokenPayload, request: Hapi.Request, h: Hapi.ResponseToolkit) => {
     const { prisma } = request.server.app
     const { tokenId } = decoded
 
@@ -83,6 +83,14 @@ interface LoginInput {
     email: string,
     password: string
 }
+const cookieOptions = {
+    ttl: 365 * 24 * 60 * 60 * 1000, // expires a year from today
+    isSecure: false,      // warm & fuzzy feelings
+    isHttpOnly: true,    // prevent client alteration
+    clearInvalid: false, // remove invalid cookies
+    strictHeader: true,  // don't allow violations of RFC 6265
+    path: '/'            // set the cookie for all routes
+}
 
 async function postLoginHandler(request: Hapi.Request, h: Hapi.ResponseToolkit) {
     const { prisma } = request.server.app
@@ -118,7 +126,7 @@ async function postLoginHandler(request: Hapi.Request, h: Hapi.ResponseToolkit) 
                 tokenId: createToken.id
             }, 'NeverShareYourSecret')
 
-            return h.response().code(200).header('Authorization', authToken)
+            return h.response().code(200).state('token', authToken, cookieOptions)
             // return h.response({ token }).code(201)
         } else {
             return Boom.unauthorized('Wrong credentials')
