@@ -99,9 +99,13 @@ const cookieOptions = {
     path: '/'
 }
 
+const JWT_SECRET = process.env.JWT_TOKEN_SECRET || 'SUPER_SECRET_JWT_SECRET'
+
 async function postSignInHandler(request: Hapi.Request, h: Hapi.ResponseToolkit) {
     const { prisma } = request.server.app
     const { email, password } = request.payload as LoginInput
+
+    console.log(JWT_SECRET)
 
     try {
         const user = await prisma.user.findUnique({
@@ -131,9 +135,9 @@ async function postSignInHandler(request: Hapi.Request, h: Hapi.ResponseToolkit)
             })
             const authToken = await jwt.sign({
                 tokenId: createToken.id
-            }, 'NeverShareYourSecret')
+            }, JWT_SECRET)
 
-            return h.response().code(200).state('token', authToken, cookieOptions)
+            return h.response({ authToken }).code(200).state('token', authToken, cookieOptions)
         } else {
             return Boom.unauthorized('Wrong credentials')
         }

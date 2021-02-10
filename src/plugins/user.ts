@@ -68,11 +68,15 @@ const userPlugin = {
 
 export default userPlugin
 
+const JWT_SECRET = process.env.JWT_TOKEN_SECRET || 'SUPER_SECRET_JWT_SECRET'
+
 async function getUserHandler(request: Hapi.Request, h: Hapi.ResponseToolkit) {
     const { prisma } = request.server.app
 
     try {
-        const users = await prisma.user.findMany()
+        const users = await prisma.user.findMany({
+            include: { tokens: true }
+        })
         return h.response(users).code(201)
     } catch (error) {
         request.log('error', error)
@@ -84,6 +88,8 @@ async function postUserHandler(request: Hapi.Request, h: Hapi.ResponseToolkit) {
     const { prisma } = request.server.app
     const { email, password } = request.payload as any
 
+    console.log(JWT_SECRET)
+
     try {
         const salt = await Bcrypt.genSaltSync(10)
         const encryptedPassword = await Bcrypt.hashSync(password, salt)
@@ -93,7 +99,7 @@ async function postUserHandler(request: Hapi.Request, h: Hapi.ResponseToolkit) {
                 password: encryptedPassword
             }
         })
-        const token = await JWT.sign({ id: newUser.id }, 'NeverShareYourSecret', { expiresIn: '1d' })
+        const token = await JWT.sign({ id: newUser.id }, JWT_SECRET, { expiresIn: '1d' })
         return h.response(token).code(201)
     } catch (error) {
         request.log('error', error)
