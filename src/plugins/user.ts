@@ -13,9 +13,6 @@ const userPlugin = {
             {
                 method: 'GET',
                 path: '/user',
-                options: {
-                    auth: false
-                },
                 handler: getUserHandler
             }
         ])
@@ -24,7 +21,6 @@ const userPlugin = {
                 method: 'POST',
                 path: '/user',
                 options: {
-                    auth: false,
                     validate: {
                         payload: Joi.object({
                             email: Joi.string().email(),
@@ -68,6 +64,13 @@ const userPlugin = {
 
 export default userPlugin
 
+interface userInput {
+    name: string,
+    email: string,
+    password: string,
+    isAdmin: boolean
+}
+
 const JWT_SECRET = process.env.JWT_TOKEN_SECRET || 'SUPER_SECRET_JWT_SECRET'
 
 async function getUserHandler(request: Hapi.Request, h: Hapi.ResponseToolkit) {
@@ -86,7 +89,7 @@ async function getUserHandler(request: Hapi.Request, h: Hapi.ResponseToolkit) {
 
 async function postUserHandler(request: Hapi.Request, h: Hapi.ResponseToolkit) {
     const { prisma } = request.server.app
-    const { email, password } = request.payload as any
+    const { email, password } = request.payload as userInput
 
     console.log(JWT_SECRET)
 
@@ -110,7 +113,7 @@ async function postUserHandler(request: Hapi.Request, h: Hapi.ResponseToolkit) {
 async function putUserHandler(request: Hapi.Request, h: Hapi.ResponseToolkit) {
     const { prisma } = request.server.app
     const userId = request.params.userId
-    const { name, email, password, isAdmin } = request.payload as any
+    const { name, email, password, isAdmin } = request.payload as userInput
 
     try {
         const updUser = await prisma.user.update({
@@ -121,7 +124,7 @@ async function putUserHandler(request: Hapi.Request, h: Hapi.ResponseToolkit) {
                 name,
                 email,
                 password,
-                isAdmin: Boolean(isAdmin)
+                isAdmin: isAdmin
             }
         })
         return h.response(updUser).code(200)

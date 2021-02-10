@@ -44,6 +44,14 @@ const authPlugin = {
             }
         ])
 
+        server.route([
+            {
+                method: 'POST',
+                path: '/signoutall',
+                handler: postSignOutAllHandler,
+            }
+        ])
+
         server.auth.default('jwt')
     }
 }
@@ -114,7 +122,7 @@ async function postSignInHandler(request: Hapi.Request, h: Hapi.ResponseToolkit)
         })
 
         if (!user) {
-            return Boom.unauthorized('Get out')
+            return Boom.unauthorized('User with current email not found')
         }
 
         const validUser = user && (await Bcrypt.compareSync(password, user.password))
@@ -161,7 +169,24 @@ async function postSignOutHandler(request: Hapi.Request, h: Hapi.ResponseToolkit
         })
 
         return h.response(token).code(201)
-        // return h.response(token).unstate('token')
+    } catch (error) {
+        return Boom.boomify(error)
+    }
+}
+
+async function postSignOutAllHandler(request: Hapi.Request, h: Hapi.ResponseToolkit) {
+    const { prisma } = request.server.app
+    const { userId } = h.request.auth.credentials
+    try {
+        const inValidate = await prisma.token.updateMany({
+            where: {
+                userId: Number(userId)
+            },
+            data: {
+                valid: false
+            }
+        })
+        return h.response(inValidate).code(201)
     } catch (error) {
         return Boom.boomify(error)
     }
